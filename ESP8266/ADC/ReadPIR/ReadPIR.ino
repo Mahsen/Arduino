@@ -1,20 +1,20 @@
 
 /************************************************** Description *******************************************************/
 /*
-    File : DoorOpen.ino
+    File : ReadPIR.ino
     Programmer : Mohammad Lotfi
-    Used : Sample lump on if door open (magnet read switch)
+    Used : Sample check PIR sensor with adc
     Design Pattern : Nothing
     Types of memory : Heap & Stack
     Total Tread : Nothing
     Site : https://www.mahsen.ir
     Tel : +989124662703
     Email : info@mahsen.ir
-    Last Update : 2023/6/16
+    Last Update : 2023/6/19
 */
 /************************************************** Warnings **********************************************************/
 /*
-    Turning on a pin after open door
+    Nothing
 */
 /************************************************** Wizards ***********************************************************/
 /*
@@ -35,9 +35,10 @@
 /************************************************** Variables *********************************************************/
 const int Pin_LAMP =             9; 
 const int Pin_LED_CPU =          10; 
-const int Pin_MAGNET =           13; 
+const int Pin_Analog =           A0;
 /*--------------------------------------------------------------------------------------------------------------------*/
 bool Value_LAMP =               false;
+int Value_Analog =              0;
 /************************************************** Opjects ***********************************************************/
 /*
     Nothing
@@ -64,13 +65,12 @@ void setup()
 
   ///
   //{
-  pinMode(Pin_LED_CPU, OUTPUT);
-  pinMode(Pin_LAMP, OUTPUT);
-  pinMode(Pin_MAGNET, INPUT_PULLUP);
+  //pinMode(Pin_LED_CPU, OUTPUT);
+  //pinMode(Pin_LAMP, OUTPUT);
   //}
   
-  Set_Value_LED_CPU(false);
-  Set_Value_LAMP(false);
+  //Set_Value_LED_CPU(false);
+  //Set_Value_LAMP(false);
 
   Serial.begin(115200);
   Serial.println();
@@ -83,26 +83,16 @@ void setup()
 void loop()
 {
   delay(500);
-  Set_Value_LED_CPU(true);
-  bool Value = digitalRead(Pin_MAGNET);
+  //Set_Value_LED_CPU(true);
   delay(500);
-  Set_Value_LED_CPU(false);
-  bool Value_Feed = digitalRead(Pin_MAGNET);
-  
-  if(Value == Value_Feed) {
-    if(Value) {
-      if(Get_Value_LAMP() == false) {
-        delay(1000);
-        Set_Value_LAMP(true);
-        Serial.println("Lamp ON");
-      }
-    }
-    else if(Get_Value_LAMP() == true) {
-      delay(1000);
-      Set_Value_LAMP(false);
-      Serial.println("Lamp OFF");
-    }
-  }
+  //Set_Value_LED_CPU(false);
+
+  // read the analog in value
+  Value_Analog = analogRead(Pin_Analog);
+ 
+  // print the readings in the Serial Monitor
+  Serial.print("Value_Analog = ");
+  Serial.println(Value_Analog);
 
 }
 /************************************************** Vectors ***********************************************************/
