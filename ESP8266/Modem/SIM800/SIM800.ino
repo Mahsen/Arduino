@@ -10,7 +10,7 @@
     Site : https://www.mahsen.ir
     Tel : +989124662703
     Email : info@mahsen.ir
-    Last Update : 2023/5/21
+    Last Update : 2023/5/23
 */
 /************************************************** Warnings **********************************************************/
 /*
@@ -21,17 +21,22 @@
     Nothing
 */
 /************************************************** Includes **********************************************************/
-#include  <SoftwareSerial.h>
+#include <SoftwareSerial.h>
+#include <Adafruit_FONA.h>
+#include <ESP8266WiFi.h>
 /************************************************** Defineds **********************************************************/
-/*
-    Nothing
-*/
+#define SIM800_TX  12
+#define SIM800_RX  14
+#define SIM800_RST 13 // SIM800 reset pin
 /************************************************** Names *************************************************************/
 /*
     Nothing
 */
 /************************************************** Variables *********************************************************/
-SoftwareSerial Sim800l(5,6);
+SoftwareSerial Sim800l(SIM800_RX, SIM800_TX);
+Adafruit_FONA fona = Adafruit_FONA(SIM800_RST);
+const char* ssid = "SHARE";
+const char* password = "12345678";
 /************************************************** Opjects ***********************************************************/
 /*
     Nothing
@@ -40,10 +45,20 @@ SoftwareSerial Sim800l(5,6);
 void setup() {
 
   Serial.begin(115200);
-  Sim800l.begin(9600);
-  delay(100);
+  Sim800l.begin(4800);
 
-  Serial.print("Start.");
+  // Initialize SIM800 module
+  /*if (!fona.begin(Sim800l)) {
+    Serial.println("Couldn't find SIM800 module");
+    while (1);
+  }*/
+
+  Serial.println("Start.");
+
+  // Configure SIM800 to forward internet traffic to ESP8266
+  /*fona.enableGPRS(true);
+
+  fona.sendSMS("09124662703", "Hi");*/
 }
 /************************************************** Tasks *************************************************************/
 void loop() {
