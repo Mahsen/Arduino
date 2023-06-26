@@ -45,20 +45,20 @@ const char* password = "12345678";
 void setup() {
 
   Serial.begin(115200);
-  Sim800l.begin(4800);
+  Sim800l.begin(9600);
 
   // Initialize SIM800 module
-  /*if (!fona.begin(Sim800l)) {
+  if (!fona.begin(Sim800l)) {
     Serial.println("Couldn't find SIM800 module");
     while (1);
-  }*/
+  }
 
   Serial.println("Start.");
 
   // Configure SIM800 to forward internet traffic to ESP8266
-  /*fona.enableGPRS(true);
+  fona.enableGPRS(true);
 
-  fona.sendSMS("09124662703", "Hi");*/
+  fona.sendSMS("09124662703", "Hi");
 }
 /************************************************** Tasks *************************************************************/
 void loop() {
