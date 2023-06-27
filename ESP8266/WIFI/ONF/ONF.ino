@@ -10,7 +10,7 @@
     Site : https://www.mahsen.ir
     Tel : +989124662703
     Email : info@mahsen.ir
-    Last Update : 2023/6/26
+    Last Update : 2023/6/27
 */
 /************************************************** Warnings **********************************************************/
 /*
@@ -23,29 +23,31 @@
 /************************************************** Includes **********************************************************/
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <EEPROM.h>
 /************************************************** Defineds **********************************************************/
-/*
-    Nothing
-*/
+#define EEPROM_SIZE 256
 /************************************************** Names *************************************************************/
 /*
     Nothing
 */
 /************************************************** Variables *********************************************************/
-const char*  _NAME = "ONF";
-const char* _VERSION = "v1";
-const char* _ID = "00000002"; // "00000001";
-const char* _TITLE = "Kitchen"; // "Bedroom";
+struct struct_Setting {
+	int Validation;
+	char _ID[16];
+	char _TITLE[32];
+	char _SSID[64];
+	char _PASWORD[64];
+	char _RESERVED[76];
+} Setting;
+/*--------------------------------------------------------------------------------------------------------------------*/
+const char*  _NAME =             "ONF";
+const char* _VERSION =           "v1.20230627";
 /*--------------------------------------------------------------------------------------------------------------------*/
 const int Pin_LAMP =             9; 
 const int Pin_LED_CPU =          10; 
 /*--------------------------------------------------------------------------------------------------------------------*/
-bool Value_LAMP =               false;
-String _IP;
-/*--------------------------------------------------------------------------------------------------------------------*/
-//SSID and Password of your WiFi router
-const char* _SSID = "Mahsen_1010"; //"Your_SSID";
-const char* _PASWORD = "03100#Mahsen3tik"; //"Your_PASWORD";
+bool Value_LAMP =                false;
+String _IP = "0.0.0.0";
 /*--------------------------------------------------------------------------------------------------------------------*/
 //Our HTML webpage contents in program memory
 const char _PAGE[] PROGMEM = R"=====(
@@ -57,42 +59,121 @@ const char _PAGE[] PROGMEM = R"=====(
 <meta name="ID" content="_ID">
 <meta name="TITLE" content="_TITLE">
 <meta name="STATE" content="_STATE">
+<style>
+*, *:before, *:after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+:root {
+	/* minFontSize + (maxFontSize - minFontSize) * (100vw - minVWidth)/(maxVWidth - minVWidth) */
+	font-size: calc(64px + (80 - 64) * (100vw - 320px)/(960 - 320));
+}
+body, input {
+	font-size: 1em;
+	line-height: 1.5;
+}
+body {
+	background: #bbb;
+  vertical-align: middle;
+  padding: 20px;
+}
+input {
+	display: block;
+	margin-bottom: 1.5em;
+}
+main {
+	padding: 1.5em 0 0 0;
+	text-align: center;	
+}
+.l {
+	background-color: rgba(0,0,0,0.7);
+	border-radius: 0.75em;
+	box-shadow: 0.125em 0.125em 0 0.125em rgba(0,0,0,0.3) inset;
+	color: #fdea7b;
+	display: inline-flex;
+	align-items: center;
+	margin: auto;
+	padding: 0.15em;
+	width: 3em;
+	height: 1.5em;
+	transition: background-color 0.1s 0.3s ease-out, box-shadow 0.1s 0.3s ease-out;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+}
+.l:before, .l:after {
+	content: "";
+	display: block;
+}
+.l:before {
+	background-color: #d7d7d7;
+	border-radius: 50%;
+	width: 1.2em;
+	height: 1.2em;
+	transition: background-color 0.1s 0.3s ease-out, transform 0.3s ease-out;
+	z-index: 1;
+}
+.l:after {
+	background:
+		linear-gradient(transparent 50%, rgba(0,0,0,0.15) 0) 0 50% / 50% 100%,
+		repeating-linear-gradient(90deg,#bbb 0,#bbb,#bbb 20%,#999 20%,#999 40%) 0 50% / 50% 100%,
+		radial-gradient(circle at 50% 50%,#888 25%, transparent 26%);
+	background-repeat: no-repeat;
+	border: 0.25em solid transparent;
+	border-left: 0.4em solid #d8d8d8;
+	border-right: 0 solid transparent;
+	transition: border-left-color 0.1s 0.3s ease-out, transform 0.3s ease-out;
+	transform: translateX(-22.5%);
+	transform-origin: 25% 50%;
+	width: 1.2em;
+	height: 1em;
+}
+/* Checked */
+.l:checked {
+	background-color: rgba(0,0,0,0.45);
+	box-shadow: 0.125em 0.125em 0 0.125em rgba(0,0,0,0.1) inset;
+}
+.l:checked:before {
+	background-color: currentColor;
+	transform: translateX(125%)
+}
+.l:checked:after {
+	border-left-color: currentColor;
+	transform: translateX(-2.5%) rotateY(180deg);
+}
+/* Other States */
+.l:focus {
+	/* Usually an anti-A11Y practice but set to remove an annoyance just for this demo */
+	outline: 0;
+}
+</style>
 </head>
 <body>
-<center>
-<table border='1' style='font-size: 40px'>
-<tr>
-<th id='Table_th_Title' style='border: 3px solid' colspan="2">
-_TITLE
-</th>
-</tr>
-<tr>
-<th id='Table_th_ON' style='width: 200px; height: 40px'><a href="ON">ON</a></th>
-<th id='Table_th_OFF' style='width: 200px; height: 40px'><a href="OFF">OFF</a></th>
-</tr>
-</table>
-</center>
+<input id='Switch' class="l" type="checkbox"> _TITLE
 </body>
 <script>
-var Table_th_Title = document.getElementById("Table_th_Title");
-var Table_th_ON = document.getElementById("Table_th_ON");
-var Table_th_OFF = document.getElementById("Table_th_OFF");
+var Switch = document.getElementById("Switch");
+
 var NAME = document.getElementsByTagName("meta")[0];
 var ID = document.getElementsByTagName("meta")[1];
 var TITLE = document.getElementsByTagName("meta")[2];
 var STATE = document.getElementsByTagName("meta")[3];
 
 if(STATE.content == "ON") {
-	Table_th_ON.style.backgroundColor = "#00FF00";
-	Table_th_OFF.style.backgroundColor = "#FFFFFF";
-	Table_th_Title.style.borderColor = "#00FF00";
-  Table_th_Title.style.backgroundColor = "#00FF00";
+	Switch.checked = true;
 } else {
-	Table_th_ON.style.backgroundColor = "#FFFFFF"; 
-	Table_th_OFF.style.backgroundColor ="#FF0000";
-	Table_th_Title.style.borderColor = "#FF0000";
-  Table_th_Title.style.backgroundColor = "#FF0000";
+	Switch.checked = false;
 }
+
+Switch.addEventListener('change', e => {
+  if(e.target.checked){
+      window.location.href = window.location.origin + "/ON"; 
+  }
+	else {
+		window.location.href = window.location.origin + "/OFF";
+	}
+});
 </script>
 </html>
 )=====";
@@ -120,8 +201,8 @@ String Genrate_HTML()
 {
   String html = _PAGE;
   html.replace("_NAME", _NAME);
-  html.replace("_ID", _ID);
-  html.replace("_TITLE", _TITLE);
+  html.replace("_ID", Setting._ID);
+  html.replace("_TITLE", Setting._TITLE);
   html.replace("_STATE", (Get_Value_LAMP()?"ON":"OFF"));
   return html;
 }
@@ -164,11 +245,11 @@ void Get_Prop()
     String json = "{";
     json += "\"Function\":\"Get_Prop\"";
     json += ",\"Name\":\"" + String(_NAME) + "\"";
-    json += ",\"ID\":\"" + String(_ID) + "\"";
+	  json += ",\"Version\":\"" + String(_VERSION) + "\"";  
     json += ",\"IP\":\"" + _IP + "\"";
-    json += ",\"TITLE\":\"" + String(_TITLE) + "\"";
-    json += ",\"STATE\":\"" + String((Get_Value_LAMP()?"ON":"OFF")) + "\"";
-    json += ",\"Version\":\"" + String(_VERSION) + "\"";    
+	  json += ",\"STATE\":\"" + String((Get_Value_LAMP()?"ON":"OFF")) + "\"";  
+	  json += ",\"ID\":\"" + String(Setting._ID) + "\"";
+    json += ",\"TITLE\":\"" + String(Setting._TITLE) + "\"";    
     json += "}";
     
     server.send(200, "application/json", json);  
@@ -185,6 +266,55 @@ void Ajax_Proccess()
   }
   else {
     handleRoot();
+  }
+}
+/*--------------------------------------------------------------------------------------------------------------------*/
+void Command_Proccess()
+{
+  if(Serial.available()) {
+	  char Buffer[256], *pch, idx=0;
+	  String Data = Serial.readString();  //read until timeout	  
+	  if(strstr(Data.c_str(), "Get()")) {
+		  sprintf(Buffer, "%s,%s,%s,%s,%s,%s,%s,%s", _NAME, _VERSION, _IP, (Get_Value_LAMP()?"ON":"OFF"), Setting._SSID, Setting._PASWORD, Setting._ID, Setting._TITLE);
+		  Serial.println(Buffer);
+	  }
+	  else if(strstr(Data.c_str(), "Set(")) {
+		  strcpy(Buffer, Data.c_str());
+		  pch = strtok (Buffer, "(,)");
+		  while (pch)
+		  {
+        switch(idx) {				  
+          case 1: {
+            strcpy(Setting._SSID, pch);
+            break;
+          }
+          case 2: {
+            strcpy(Setting._PASWORD, pch);
+            break;
+          }
+          case 3: {
+            strcpy(Setting._ID, pch);
+            break;
+          }
+          case 4: {
+            strcpy(Setting._TITLE, pch);
+            break;
+          }
+        }
+        idx++;
+        pch = strtok (NULL, "(,)");
+		  }
+		  Serial.print("EEPROM Config ");
+		  EEPROM.begin(EEPROM_SIZE);
+		  EEPROM.put(0, Setting);
+		  EEPROM.commit();
+		  EEPROM.end();
+		  Serial.print("Save ");
+		  Serial.println("Ok");		  
+	  } else if(strstr(Data.c_str(), "Reset()")) {
+      Serial.println("Ok");		
+      ESP.reset();      
+    }	  
   }
 }
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -205,45 +335,74 @@ void setup() {
   delay(100);
   Serial.println("Ok");
   
-  Serial.print("WiFi Config ");
-  WiFi.hostname(_ID);
-  WiFi.begin(_SSID, _PASWORD);     //Connect to your WiFi router
-  // Wait for connection
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  Serial.print("EEPROM Config ");
+  //Init EEPROM
+  EEPROM.begin(EEPROM_SIZE);
+  EEPROM.get(0, Setting);
+  if(Setting.Validation != sizeof(Setting)) {
+	  strcpy(Setting._ID, "00000000");
+	  strcpy(Setting._TITLE, "none");
+	  strcpy(Setting._SSID, "SSID");
+	  strcpy(Setting._PASWORD, "PASSWORD");
+	  Setting.Validation = sizeof(Setting);
+	  EEPROM.put(0, Setting);
+	  EEPROM.commit();
+	  Serial.print("Reset ");
+  } else {
+	  Serial.print("Load ");
   }
-  Serial.println(" Ok");
+  EEPROM.end();
+  Serial.println("Ok");
+		  
+  Serial.print("WiFi Config ");
+  WiFi.hostname(Setting._ID);
+  WiFi.begin(Setting._SSID, Setting._PASWORD);     //Connect to your WiFi router
+  // Wait for connection
+  int Timeout=0;
+  for (Timeout=0; ((Timeout < 60) && (WiFi.status() != WL_CONNECTED)); Timeout++) {
+    delay(500);
+    Set_Value_LED_CPU(true);
+    delay(500);
+    Set_Value_LED_CPU(false);
+    Serial.print(".");
+    Command_Proccess();
+  }
+  Set_Value_LED_CPU(false);
+  if(Timeout != 60) {
+    Serial.println(" Ok");
 
-  //If connection successful show IP address in serial monitor
-  Serial.print("Connected to ");
-  Serial.println(_SSID);
-  Serial.print("IP address: ");
-  //IP address assigned to your ESP
-  _IP = WiFi.localIP().toString();
-  Serial.println(_IP);  
-  
-  Serial.print("Server Config ");
-  //Which routine to handle at root location
-  server.on("/", HTTP_GET, []() 
-  {
-    Ajax_Proccess();
-  });
-  //as Per  <a href="ON">,
-  server.on("/ON", handle_ON_LAMP);  
-  //as Per  <a href="OFF">,
-  server.on("/OFF", handle_OFF_LAMP);
-  //as Per 
-  
+    //If connection successful show IP address in serial monitor
+    Serial.print("Connected to ");
+    Serial.println(Setting._SSID);
+    Serial.print("IP address: ");
+    //IP address assigned to your ESP
+    _IP = WiFi.localIP().toString();
+    Serial.println(_IP);  
+    
+    Serial.print("Server Config ");
+    //Which routine to handle at root location
+    server.on("/", HTTP_GET, []() 
+    {
+      Ajax_Proccess();
+    });
+    //as Per  <a href="ON">,
+    server.on("/ON", handle_ON_LAMP);  
+    //as Per  <a href="OFF">,
+    server.on("/OFF", handle_OFF_LAMP);
+    //as Per 
+    
 
-  //Start server
-  server.begin();                  
-  Serial.println(" Ok");
-
+    //Start server
+    server.begin();                  
+    Serial.println(" Ok");
+  } else {
+    Serial.println(" Fail");
+  }
 }
 /************************************************** Tasks *************************************************************/
 void loop() {
   server.handleClient();          //Handle client requests
+  Command_Proccess();
 }
 /************************************************** Vectors ***********************************************************/
 /*
