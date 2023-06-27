@@ -10,7 +10,7 @@
     Site : https://www.mahsen.ir
     Tel : +989124662703
     Email : info@mahsen.ir
-    Last Update : 2023/6/26
+    Last Update : 2023/6/27
 */
 /************************************************** Warnings **********************************************************/
 /*
@@ -23,29 +23,31 @@
 /************************************************** Includes **********************************************************/
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <EEPROM.h>
 /************************************************** Defineds **********************************************************/
-/*
-    Nothing
-*/
+#define EEPROM_SIZE 256
 /************************************************** Names *************************************************************/
 /*
     Nothing
 */
 /************************************************** Variables *********************************************************/
-const char*  _NAME = "ONF";
-const char* _VERSION = "v1";
-const char* _ID = "00000002"; // "00000001";
-const char* _TITLE = "Kitchen"; // "Bedroom";
+struct struct_Setting {
+	int Validation;
+	char _ID[16];
+	char _TITLE[32];
+	char _SSID[64];
+	char _PASWORD[64];
+	char _RESERVED[76];
+} Setting;
+/*--------------------------------------------------------------------------------------------------------------------*/
+const char*  _NAME =             "ONF";
+const char* _VERSION =           "v1.20230627";
 /*--------------------------------------------------------------------------------------------------------------------*/
 const int Pin_LAMP =             9; 
 const int Pin_LED_CPU =          10; 
 /*--------------------------------------------------------------------------------------------------------------------*/
-bool Value_LAMP =               false;
-String _IP;
-/*--------------------------------------------------------------------------------------------------------------------*/
-//SSID and Password of your WiFi router
-const char* _SSID = "Your_SSID";
-const char* _PASWORD = "Your_PASSWORD";
+bool Value_LAMP =                false;
+String _IP = "0.0.0.0";
 /*--------------------------------------------------------------------------------------------------------------------*/
 //Our HTML webpage contents in program memory
 const char _PAGE[] PROGMEM = R"=====(
@@ -120,8 +122,8 @@ String Genrate_HTML()
 {
   String html = _PAGE;
   html.replace("_NAME", _NAME);
-  html.replace("_ID", _ID);
-  html.replace("_TITLE", _TITLE);
+  html.replace("_ID", Setting._ID);
+  html.replace("_TITLE", Setting._TITLE);
   html.replace("_STATE", (Get_Value_LAMP()?"ON":"OFF"));
   return html;
 }
@@ -164,11 +166,11 @@ void Get_Prop()
     String json = "{";
     json += "\"Function\":\"Get_Prop\"";
     json += ",\"Name\":\"" + String(_NAME) + "\"";
-    json += ",\"ID\":\"" + String(_ID) + "\"";
+	json += ",\"Version\":\"" + String(_VERSION) + "\"";  
     json += ",\"IP\":\"" + _IP + "\"";
-    json += ",\"TITLE\":\"" + String(_TITLE) + "\"";
-    json += ",\"STATE\":\"" + String((Get_Value_LAMP()?"ON":"OFF")) + "\"";
-    json += ",\"Version\":\"" + String(_VERSION) + "\"";    
+	json += ",\"STATE\":\"" + String((Get_Value_LAMP()?"ON":"OFF")) + "\"";  
+	json += ",\"ID\":\"" + String(Setting._ID) + "\"";
+    json += ",\"TITLE\":\"" + String(Setting._TITLE) + "\"";    
     json += "}";
     
     server.send(200, "application/json", json);  
@@ -205,6 +207,25 @@ void setup() {
   delay(100);
   Serial.println("Ok");
   
+  Serial.print("EEPROM Config ");
+  //Init EEPROM
+  EEPROM.begin(EEPROM_SIZE);
+  EEPROM.get(0, Setting);
+  if(Setting.Validation != sizeof(Setting)) {
+	  strcpy(Setting._ID, "00000000");
+	  strcpy(Setting._TITLE, "none");
+	  strcpy(Setting._SSID, "SSID");
+	  strcpy(Setting._PASWORD, "PASSWORD");
+	  Setting.Validation = sizeof(Setting);
+	  EEPROM.put(0, Setting);
+	  EEPROM.commit();
+	  Serial.print("Reset ");
+  } else {
+	  Serial.print("Load ");
+  }
+  EEPROM.end();
+  Serial.println("Ok");
+		  
   Serial.print("WiFi Config ");
   WiFi.hostname(_ID);
   WiFi.begin(_SSID, _PASWORD);     //Connect to your WiFi router
@@ -244,6 +265,51 @@ void setup() {
 /************************************************** Tasks *************************************************************/
 void loop() {
   server.handleClient();          //Handle client requests
+  
+  if(Serial.available()) {
+	  char Buffer[256], *pch, idx=0;
+	  String Data = Serial.readString();  //read until timeout	  
+	  if(strstr(Data.c_str(), "Get()")) {
+		  sprintf(Buffer, "%s,%s,%s,%s,%s,%s,%s,%s", _NAME, _VERSION, _IP, (Get_Value_LAMP()?"ON":"OFF"), Setting._SSID, Setting._PASWORD, Setting._ID, Setting._TITLE);
+		  Serial.println(Buffer);
+	  }
+	  else if(strstr(Data.c_str(), "Set(")) {
+		  strcpy(Buffer, Data.c_str());
+		  pch = strtok (Buffer, "(,)");
+		  while (pch))
+		  {
+			switch(idx) {				  
+				case 1: {
+					strcpy(Setting._SSID, pch);
+					break;
+				}
+				case 2: {
+					strcpy(Setting._PASWORD, pch);
+					break;
+				}
+				case 3: {
+					strcpy(Setting._ID, pch);
+					break;
+				}
+				case 4: {
+					strcpy(Setting._TITLE, pch);
+					break;
+				}
+			}
+			idx++;
+			Serial.println(pch);
+			pch = strtok (NULL, "(,");
+		  }
+		  //Serial.print("EEPROM Config ");
+		  //EEPROM.begin(EEPROM_SIZE);
+		  //EEPROM.put(0, Setting);
+		  //EEPROM.commit();
+		  //EEPROM.end();
+		  //Serial.print("Save ");
+		  //Serial.println("Ok");		  
+	  }	  
+  }
+  
 }
 /************************************************** Vectors ***********************************************************/
 /*
