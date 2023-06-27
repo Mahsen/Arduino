@@ -44,8 +44,8 @@ bool Value_LAMP =               false;
 String _IP;
 /*--------------------------------------------------------------------------------------------------------------------*/
 //SSID and Password of your WiFi router
-const char* _SSID = "Your_SSID";
-const char* _PASWORD = "Your_PASSWORD";
+const char* _SSID = "Mahsen_1010"; //"Your_SSID";
+const char* _PASWORD = "03100#Mahsen3tik"; //"Your_PASWORD";
 /*--------------------------------------------------------------------------------------------------------------------*/
 //Our HTML webpage contents in program memory
 const char _PAGE[] PROGMEM = R"=====(
