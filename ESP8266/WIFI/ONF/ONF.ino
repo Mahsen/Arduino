@@ -376,10 +376,12 @@ void setup() {
 	  Serial.print("Load ");
   }
   EEPROM.end();
+  char Hostname[64];
+  sprintf(Hostname, "%s-%s", Setting._ID, Setting._TITLE);
   Serial.println("Ok");
 		  
   Serial.print("WiFi Config ");
-  WiFi.hostname(Setting._ID);
+  WiFi.hostname(Hostname);
   WiFi.begin(Setting._SSID, Setting._PASWORD);     //Connect to your WiFi router
   // Wait for connection
   int Timeout=0;
@@ -420,8 +422,8 @@ void setup() {
     Serial.print("OTA Config ");
     // Port defaults to 8266
     ArduinoOTA.setPort(8266);
-    // Hostname defaults to esp8266-[ChipID]
-    ArduinoOTA.setHostname(Setting._ID);
+    // Hostname defaults to esp8266-[ChipID]    
+    ArduinoOTA.setHostname(Hostname);
     // No authentication by default
     ArduinoOTA.setPassword((const char *)"123");
     ArduinoOTA.onStart([]() {
