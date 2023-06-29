@@ -77,7 +77,7 @@ body, input {
 body {
 	background: #bbb;
   vertical-align: middle;
-  padding: 20px;
+  margin: 10px;
 }
 input {
 	display: block;
@@ -151,7 +151,14 @@ main {
 </style>
 </head>
 <body>
-<input id='Switch' class="l" type="checkbox"> _TITLE
+<table><tr>
+<th>
+<input id='Switch' class="l" type="checkbox"></th>
+</th>
+<th width="60%">
+<marquee truespeed="truespeed" scrolldelay="10" scrollamount="2" direction="left"> _TITLE</marquee>
+</th>
+</tr></table>
 </body>
 <script>
 var myTimer;
