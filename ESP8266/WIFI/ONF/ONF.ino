@@ -10,7 +10,7 @@
     Site : https://www.mahsen.ir
     Tel : +989124662703
     Email : info@mahsen.ir
-    Last Update : 2023/6/27
+    Last Update : 2023/6/28
 */
 /************************************************** Warnings **********************************************************/
 /*
@@ -41,7 +41,7 @@ struct struct_Setting {
 } Setting;
 /*--------------------------------------------------------------------------------------------------------------------*/
 const char*  _NAME =             "ONF";
-const char* _VERSION =           "v1.20230627";
+const char* _VERSION =           "v1.20230628";
 /*--------------------------------------------------------------------------------------------------------------------*/
 const int Pin_LAMP =             9; 
 const int Pin_LED_CPU =          10; 
@@ -153,6 +153,27 @@ main {
 <input id='Switch' class="l" type="checkbox"> _TITLE
 </body>
 <script>
+var xmlhttp;
+if (window.XMLHttpRequest) {
+    // code for IE7+, Firefox, Chrome, Opera, Safari
+    xmlhttp = new XMLHttpRequest();
+}
+else {
+    // code for IE6, IE5
+    xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+}
+
+xmlhttp.onreadystatechange = function () {
+    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+		  //alert(JSON.parse(xmlhttp.responseText).STATE);
+      if(JSON.parse(xmlhttp.responseText).STATE == "ON") {
+        Switch.checked = true;
+      } else {
+        Switch.checked = false;
+      }
+    }
+}
+
 var Switch = document.getElementById("Switch");
 
 var NAME = document.getElementsByTagName("meta")[0];
@@ -166,13 +187,16 @@ if(STATE.content == "ON") {
 	Switch.checked = false;
 }
 
-Switch.addEventListener('change', e => {
-  if(e.target.checked){
-      window.location.href = window.location.origin + "/ON"; 
+Switch.addEventListener('click', e => {
+  if(e.target.checked){		
+    xmlhttp.open("POST", window.location.origin + "/ON", true);
+    Switch.checked = false;
   }
-	else {
-		window.location.href = window.location.origin + "/OFF";
-	}
+  else {
+    xmlhttp.open("POST", window.location.origin + "/OFF", true);
+    Switch.checked = true;
+  }  	
+  xmlhttp.send();
 });
 </script>
 </html>
@@ -217,15 +241,13 @@ void handleRoot() {
 void handle_ON_LAMP() { 
  Serial.println("You called handle_ON_LAMP");
  Set_Value_LAMP(true);
- String s = Genrate_HTML();
- server.send(200, "text/html", s);
+ Get_Prop();
 }
 /*--------------------------------------------------------------------------------------------------------------------*/
 void handle_OFF_LAMP() { 
  Serial.println("You called handle_OFF_LAMP");
  Set_Value_LAMP(false);
- String s = Genrate_HTML();
- server.send(200, "text/html", s); 
+ Get_Prop();
 }
 /*--------------------------------------------------------------------------------------------------------------------*/
 void Header()
@@ -263,9 +285,6 @@ void Ajax_Proccess()
     {
       Get_Prop();
     }
-  }
-  else {
-    handleRoot();
   }
 }
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -381,16 +400,13 @@ void setup() {
     
     Serial.print("Server Config ");
     //Which routine to handle at root location
-    server.on("/", HTTP_GET, []() 
+    server.on("/", HTTP_POST, []() 
     {
       Ajax_Proccess();
     });
-    //as Per  <a href="ON">,
-    server.on("/ON", handle_ON_LAMP);  
-    //as Per  <a href="OFF">,
+    server.on("/", handleRoot);  
+    server.on("/ON", handle_ON_LAMP);
     server.on("/OFF", handle_OFF_LAMP);
-    //as Per 
-    
 
     //Start server
     server.begin();                  
