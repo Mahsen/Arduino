@@ -153,6 +153,7 @@ main {
 <input id='Switch' class="l" type="checkbox"> _TITLE
 </body>
 <script>
+var myTimer;
 var xmlhttp;
 if (window.XMLHttpRequest) {
     // code for IE7+, Firefox, Chrome, Opera, Safari
@@ -164,7 +165,9 @@ else {
 }
 
 xmlhttp.onreadystatechange = function () {
-    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+  //alert(" " + xmlhttp.readyState + " " + mlhttp.statusx);
+    if (xmlhttp.readyState == 4) {
+      clearInterval(myTimer);
 		  //alert(JSON.parse(xmlhttp.responseText).STATE);
       if(JSON.parse(xmlhttp.responseText).STATE == "ON") {
         Switch.checked = true;
@@ -197,6 +200,7 @@ Switch.addEventListener('click', e => {
     Switch.checked = true;
   }  	
   xmlhttp.send();
+  myTimer = setTimeout("alert('Device Disconnected')", 3000);
 });
 </script>
 </html>
@@ -231,25 +235,6 @@ String Genrate_HTML()
   return html;
 }
 /*--------------------------------------------------------------------------------------------------------------------*/
-// This routine is executed when you open its IP in browser
-void handleRoot() {
- Serial.println("You called handleRoot");
- String s = Genrate_HTML();
- server.send(200, "text/html", s); //Send web page
-}
-/*--------------------------------------------------------------------------------------------------------------------*/
-void handle_ON_LAMP() { 
- Serial.println("You called handle_ON_LAMP");
- Set_Value_LAMP(true);
- Get_Prop();
-}
-/*--------------------------------------------------------------------------------------------------------------------*/
-void handle_OFF_LAMP() { 
- Serial.println("You called handle_OFF_LAMP");
- Set_Value_LAMP(false);
- Get_Prop();
-}
-/*--------------------------------------------------------------------------------------------------------------------*/
 void Header()
 {
   server.sendHeader(F("Access-Control-Allow-Origin"), F("*"));
@@ -275,6 +260,25 @@ void Get_Prop()
     json += "}";
     
     server.send(200, "application/json", json);  
+}
+/*--------------------------------------------------------------------------------------------------------------------*/
+// This routine is executed when you open its IP in browser
+void handleRoot() {
+ Serial.println("You called handleRoot");
+ String s = Genrate_HTML();
+ server.send(200, "text/html", s); //Send web page
+}
+/*--------------------------------------------------------------------------------------------------------------------*/
+void handle_ON_LAMP() { 
+ Serial.println("You called handle_ON_LAMP");
+ Set_Value_LAMP(true);
+ Get_Prop();
+}
+/*--------------------------------------------------------------------------------------------------------------------*/
+void handle_OFF_LAMP() { 
+ Serial.println("You called handle_OFF_LAMP");
+ Set_Value_LAMP(false);
+ Get_Prop();
 }
 /*--------------------------------------------------------------------------------------------------------------------*/
 void Ajax_Proccess()
