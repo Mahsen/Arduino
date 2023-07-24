@@ -23,8 +23,13 @@
 /************************************************** Includes **********************************************************/
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <ESP8266WebServerSecure.h>
 #include <EEPROM.h>
 #include <ArduinoOTA.h>
+#include <WiFiClient.h>
+#include <ESP8266mDNS.h>
+#include <umm_malloc/umm_malloc.h>
+#include <umm_malloc/umm_heap_select.h>
 /************************************************** Defineds **********************************************************/
 #define EEPROM_SIZE 256
 /************************************************** Names *************************************************************/
@@ -75,7 +80,7 @@ body, input {
 	line-height: 1.5;
 }
 body {
-	background: #bbb;
+	background: #5c8dc5;
   vertical-align: middle;
   margin: 10px;
 }
@@ -155,9 +160,7 @@ main {
 <th>
 <input id='Switch' class="l" type="checkbox"></th>
 </th>
-<th width="60%">
-<marquee truespeed="truespeed" scrolldelay="10" scrollamount="2" direction="left"> _TITLE</marquee>
-</th>
+<th width="500px" style="padding-left:20px">_TITLE</th>
 </tr></table>
 </body>
 <script>
@@ -215,6 +218,7 @@ Switch.addEventListener('click', e => {
 )=====";
 /************************************************** Opjects ***********************************************************/
 ESP8266WebServer server(80); //Server on port 80
+ESP8266WebServerSecure serverHTTPS(443);
 /************************************************** Functions *********************************************************/
 void Set_Value_LED_CPU(bool Value)
 {
@@ -306,7 +310,7 @@ void Command_Proccess()
 	  char Buffer[256], *pch, idx=0;
 	  String Data = Serial.readString();  //read until timeout	  
 	  if(strstr(Data.c_str(), "Get()")) {
-		  sprintf(Buffer, "%s,%s,%s,%s,%s,%s,%s,%s", _NAME, _VERSION, _IP, (Get_Value_LAMP()?"ON":"OFF"), Setting._SSID, Setting._PASWORD, Setting._ID, Setting._TITLE);
+		  sprintf(Buffer, "%s,%s,%s,%s,%s,%s,%s,%s", _NAME, _VERSION, _IP.c_str(), (Get_Value_LAMP()?"ON":"OFF"), Setting._SSID, Setting._PASWORD, Setting._ID, Setting._TITLE);
 		  Serial.println(Buffer);
 	  }
 	  else if(strstr(Data.c_str(), "Set(")) {
@@ -347,6 +351,13 @@ void Command_Proccess()
       ESP.reset();      
     }	  
   }
+}
+/*--------------------------------------------------------------------------------------------------------------------*/
+void secureRedirect() {
+  char Buffer[64];
+  sprintf(Buffer, "http://%s/", _IP.c_str());		  
+  serverHTTPS.sendHeader("Location", String(Buffer), true);
+  serverHTTPS.send(301, "text/plain", "");
 }
 /*--------------------------------------------------------------------------------------------------------------------*/
 void setup() {
@@ -413,6 +424,8 @@ void setup() {
     Serial.println(_IP);  
     
     Serial.print("Server Config ");
+    serverHTTPS.on("/", secureRedirect);
+    serverHTTPS.begin();
     //Which routine to handle at root location
     server.on("/", HTTP_POST, []() 
     {
@@ -460,7 +473,8 @@ void setup() {
 }
 /************************************************** Tasks *************************************************************/
 void loop() {
-  server.handleClient();          //Handle client requests
+  serverHTTPS.handleClient();
+  server.handleClient();
   Command_Proccess();
   ArduinoOTA.handle();
 }
