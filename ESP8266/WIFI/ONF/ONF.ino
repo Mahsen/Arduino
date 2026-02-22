@@ -47,7 +47,7 @@ struct struct_Setting {
 } Setting;
 /*--------------------------------------------------------------------------------------------------------------------*/
 const char*  _NAME =             "ONF";
-const char* _VERSION =           "v1.20230628";
+const char* _VERSION =           "v1.20260222";
 /*--------------------------------------------------------------------------------------------------------------------*/
 const int Pin_LAMP =             9; 
 const int Pin_LED_CPU =          10; 
@@ -293,6 +293,12 @@ void handle_OFF_LAMP() {
  Get_Prop();
 }
 /*--------------------------------------------------------------------------------------------------------------------*/
+void handle_TOGGLE_LAMP() { 
+ Serial.println("You called handle_TOGGLE_LAMP");
+ Set_Value_LAMP(!Get_Value_LAMP());
+ Get_Prop();
+}
+/*--------------------------------------------------------------------------------------------------------------------*/
 void Ajax_Proccess()
 {
   if(server.argName(0).indexOf("Function") != -1) 
@@ -434,6 +440,7 @@ void setup() {
     server.on("/", handleRoot);  
     server.on("/ON", handle_ON_LAMP);
     server.on("/OFF", handle_OFF_LAMP);
+    server.on("/TOGGLE", handle_TOGGLE_LAMP);
 
     //Start server
     server.begin();                  
