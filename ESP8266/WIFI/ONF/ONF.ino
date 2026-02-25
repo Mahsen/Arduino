@@ -53,6 +53,7 @@ const int Pin_LAMP =             9;
 const int Pin_LED_CPU =          10; 
 /*--------------------------------------------------------------------------------------------------------------------*/
 bool Value_LAMP =                false;
+bool Blink_LAMP =                false;
 String _IP = "0.0.0.0";
 /*--------------------------------------------------------------------------------------------------------------------*/
 //Our HTML webpage contents in program memory
@@ -283,19 +284,28 @@ void handleRoot() {
 /*--------------------------------------------------------------------------------------------------------------------*/
 void handle_ON_LAMP() { 
  Serial.println("You called handle_ON_LAMP");
+ Blink_LAMP = false;
  Set_Value_LAMP(true);
  Get_Prop();
 }
 /*--------------------------------------------------------------------------------------------------------------------*/
 void handle_OFF_LAMP() { 
  Serial.println("You called handle_OFF_LAMP");
+ Blink_LAMP = false;
  Set_Value_LAMP(false);
  Get_Prop();
 }
 /*--------------------------------------------------------------------------------------------------------------------*/
 void handle_TOGGLE_LAMP() { 
  Serial.println("You called handle_TOGGLE_LAMP");
+ Blink_LAMP = false;
  Set_Value_LAMP(!Get_Value_LAMP());
+ Get_Prop();
+}
+/*--------------------------------------------------------------------------------------------------------------------*/
+void handle_BLINK_LAMP() { 
+ Serial.println("You called handle_BLINK_LAMP");
+ Blink_LAMP = true;
  Get_Prop();
 }
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -441,6 +451,7 @@ void setup() {
     server.on("/ON", handle_ON_LAMP);
     server.on("/OFF", handle_OFF_LAMP);
     server.on("/TOGGLE", handle_TOGGLE_LAMP);
+    server.on("/BLINK", handle_BLINK_LAMP);
 
     //Start server
     server.begin();                  
@@ -484,6 +495,90 @@ void loop() {
   server.handleClient();
   Command_Proccess();
   ArduinoOTA.handle();
+  if(Blink_LAMP) {
+      static int Time = 0;
+      static int Mode = 0;
+      static int ModeTime = 0;
+
+      Time++;
+      ModeTime++;
+
+      // تغییر حالت هر 5 ثانیه
+      if(ModeTime > 5000) {
+          Mode++;
+          if(Mode > 4) Mode = 0;
+          ModeTime = 0;
+          Time = 0;
+      }
+
+      switch(Mode) {
+          // -----------------
+          // حالت 0 : Slow Blink
+          case 0:
+              if(Time < 300)
+                  Set_Value_LAMP(true);
+              else if(Time < 600)
+                  Set_Value_LAMP(false);
+              else
+                  Time = 0;
+              break;
+
+          // -----------------
+          // حالت 1 : Fast Blink
+          case 1:
+              if(Time < 80)
+                  Set_Value_LAMP(true);
+              else if(Time < 160)
+                  Set_Value_LAMP(false);
+              else
+                  Time = 0;
+              break;
+
+          // -----------------
+          // حالت 2 : Double Flash
+          case 2:
+              if(Time < 80)
+                  Set_Value_LAMP(true);
+              else if(Time < 160)
+                  Set_Value_LAMP(false);
+              else if(Time < 240)
+                  Set_Value_LAMP(true);
+              else if(Time < 700)
+                  Set_Value_LAMP(false);
+              else
+                  Time = 0;
+              break;
+
+          // -----------------
+          // حالت 3 : Disco
+          case 3:
+              if(Time % 100 < 50)
+                  Set_Value_LAMP(true);
+              else
+                  Set_Value_LAMP(false);
+
+              if(Time > 2000)
+                  Time = 0;
+              break;
+
+          // -----------------
+          // حالت 4 : Beat
+          case 4:
+              if(Time < 200)
+                  Set_Value_LAMP(true);
+              else if(Time < 300)
+                  Set_Value_LAMP(false);
+              else if(Time < 500)
+                  Set_Value_LAMP(true);
+              else if(Time < 900)
+                  Set_Value_LAMP(false);
+              else
+                  Time = 0;
+              break;
+      }
+
+      delay(1);   // هر بار 1ms
+  }
 }
 /************************************************** Vectors ***********************************************************/
 /*
